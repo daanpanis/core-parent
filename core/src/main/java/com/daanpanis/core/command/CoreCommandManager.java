@@ -2,6 +2,7 @@ package com.daanpanis.core.command;
 
 import com.daanpanis.core.api.command.*;
 import com.daanpanis.core.api.command.exceptions.*;
+import com.daanpanis.core.program.Debugger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import org.bukkit.command.CommandSender;
@@ -52,20 +53,30 @@ public class CoreCommandManager implements CommandManager {
     public void executeCommand(CommandSender sender, String executedCommand) {
         List<String> commandSplit = Stream.of(executedCommand.trim().replace("\\s{2,}", "").split(" ")).filter(string -> !string.isEmpty())
                 .collect(Collectors.toList());
+        Debugger.println("command split size: " + commandSplit.size());
+        Debugger.println("is empty? " + commandSplit.isEmpty());
         if (commandSplit.isEmpty())
             throw new CommandExecutionException("Unknown command!");
         String commandName = commandSplit.get(0).toLowerCase();
+        Debugger.println("is registered? " + registeredCommands.containsKey(commandName));
         if (registeredCommands.containsKey(commandName)) {
-            List<String> args = commandSplit.subList(1, commandSplit.size() - 1);
+            List<String> args = commandSplit.subList(1, commandSplit.size());
+            Debugger.println("args size: " + args.size());
+            Debugger.println("Real commands size: " + registeredCommands.get(commandName).size());
             List<CoreCommand> commands = registeredCommands.get(commandName).stream().filter(coreCommand -> coreCommand.matches(args))
                     .collect(Collectors.toList());
 
+            Debugger.println("commands size: " + commands.size());
             if (commands.isEmpty())
                 throw new CommandExecutionException("Unknown command!");
             else if (commands.size() > 1)
                 throw new CommandExecutionException("Multiple commands matched!");
 
-
+            try {
+                commands.get(0).execute(sender, args);
+            } catch (CommandExecutionException ex) {
+                System.err.println(ex.getMessage());
+            }
         } else {
             throw new CommandExecutionException("Unknown command!");
         }
@@ -146,11 +157,14 @@ public class CoreCommandManager implements CommandManager {
         Parameter parameter = parameters.get(index - 1);
         String argumentName = getArgumentName(parameter);
         if (parameter.getAnnotation(Message.class) != null) {
-            return new MessageCommandArgument(argumentName);
+            if (parameter.getType() != String.class)
+                throw new CommandParametersException("Message annotation can only be applied to a String parameter");
+
+            return new MessageCommandArgument(argumentName, index);
         }
 
         indexesUsed.add(index);
-        return new ParsableCommandArgument(argumentName, getParameterParser(parameter.getClass()));
+        return new ParsableCommandArgument(argumentName, index, getParameterParser(parameter.getType()));
     }
 
     private String getArgumentName(Parameter parameter) {

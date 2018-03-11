@@ -6,15 +6,21 @@ import com.daanpanis.core.api.command.ParameterParser;
 public class ParsableCommandArgument implements CommandArgument {
 
     private final String name;
+    private final int parameterIndex;
     private final ParameterParser parser;
 
-    public ParsableCommandArgument(String name, ParameterParser parser) {
+    public ParsableCommandArgument(String name, int parameterIndex, ParameterParser parser) {
         this.name = name;
+        this.parameterIndex = parameterIndex;
         this.parser = parser;
     }
 
     public ParameterParser getParser() {
         return parser;
+    }
+
+    public int getParameterIndex() {
+        return parameterIndex;
     }
 
     @Override

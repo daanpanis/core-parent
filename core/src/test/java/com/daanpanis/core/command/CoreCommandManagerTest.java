@@ -3,6 +3,7 @@ package com.daanpanis.core.command;
 import com.daanpanis.core.api.command.Command;
 import com.daanpanis.core.api.command.Message;
 import com.daanpanis.core.api.command.exceptions.*;
+import com.daanpanis.core.api.command.parsers.IntegerParser;
 import com.daanpanis.core.api.command.parsers.StringParser;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -161,6 +162,18 @@ public class CoreCommandManagerTest {
 
         });
         assertThat(manager.getCommandsCount(), is(1));
+    }
+
+    @Test(expected = CommandParametersException.class)
+    public void registerCommandMessageArgumentNotString() throws Exception {
+        manager.registerParameterType(int.class, new IntegerParser());
+        manager.registerCommands(new Object() {
+
+            @Command(syntax = "command {1}")
+            void command(CommandSender sender, @Message int message) {
+            }
+
+        });
     }
 
     /*
