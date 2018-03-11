@@ -1,11 +1,19 @@
 package com.daanpanis.core.api.command;
 
 import com.daanpanis.core.api.command.exceptions.CommandException;
+import com.daanpanis.core.api.command.meta.Meta;
+import com.daanpanis.core.api.command.meta.MetaMatcher;
 import org.bukkit.command.CommandSender;
 
 public interface CommandManager {
 
-    void registerCommands(Object commands) throws CommandException;
+    default void registerCommands(Object commands) throws CommandException {
+        registerCommands(commands, Meta.empty());
+    }
+
+    void registerCommands(Object commands, Meta meta) throws CommandException;
+
+    void unregisterCommands(MetaMatcher matcher);
 
     <T> void registerParameterType(Class<T> parameterClass, ParameterParser<T> parser);
 

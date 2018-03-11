@@ -2,6 +2,8 @@ package com.daanpanis.core.command;
 
 import com.daanpanis.core.api.command.*;
 import com.daanpanis.core.api.command.exceptions.*;
+import com.daanpanis.core.api.command.meta.Meta;
+import com.daanpanis.core.api.command.meta.MetaMatcher;
 import com.daanpanis.core.program.Debugger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -21,14 +23,22 @@ public class CoreCommandManager implements CommandManager {
     private final Map<Class<?>, ParameterParser<?>> registeredParameters = new HashMap<>();
 
     @Override
-    public void registerCommands(Object commands) throws CommandException {
+    public void registerCommands(Object commands, Meta meta) throws CommandException {
         Collection<Method> commandMethods = Stream.of(commands.getClass().getDeclaredMethods())
                 .filter(method -> method.getAnnotation(Command.class) != null).collect(Collectors.toList());
         if (commandMethods.isEmpty())
             throw new CommandException("No command methods found");
         for (Method method : commandMethods) {
-            registerCommand(method, commands);
+            registerCommand(method, commands, meta);
         }
+    }
+
+    @Override
+    public void unregisterCommands(MetaMatcher matcher) {
+        registeredCommands.entrySet().removeIf(entry -> {
+            entry.getValue().removeIf(coreCommand -> matcher.test(coreCommand.getMeta()));
+            return entry.getValue().isEmpty();
+        });
     }
 
     @Override
@@ -82,7 +92,7 @@ public class CoreCommandManager implements CommandManager {
         }
     }
 
-    private void registerCommand(Method method, Object instance) throws CommandException {
+    private void registerCommand(Method method, Object instance, Meta meta) throws CommandException {
         List<Parameter> parameters = getParameters(method);
 
         Command annotation = method.getAnnotation(Command.class);
@@ -96,7 +106,7 @@ public class CoreCommandManager implements CommandManager {
         arguments = arguments.subList(1, arguments.size());
         List<CommandArgument> args = getArguments(method, parameters, arguments);
 
-        this.registeredCommands.computeIfAbsent(commandName.toLowerCase(), f -> new ArrayList<>()).add(new CoreCommand(instance, method, args));
+        this.registeredCommands.computeIfAbsent(commandName.toLowerCase(), f -> new ArrayList<>()).add(new CoreCommand(instance, method, args, meta));
     }
 
     private List<Parameter> getParameters(Method method) throws CommandException {

@@ -2,6 +2,7 @@ package com.daanpanis.core.command;
 
 import com.daanpanis.core.api.command.CommandArgument;
 import com.daanpanis.core.api.command.exceptions.CommandExecutionException;
+import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.program.Debugger;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -16,10 +17,12 @@ public class CoreCommand {
     private final Object instance;
     private final Method method;
     private final List<CommandArgument> arguments;
+    private final Meta meta;
 
-    public CoreCommand(Object instance, Method method, List<CommandArgument> arguments) {
+    public CoreCommand(Object instance, Method method, List<CommandArgument> arguments, Meta meta) {
         this.instance = instance;
         this.method = method;
+        this.meta = meta;
         this.method.setAccessible(true);
         this.arguments = arguments;
     }
@@ -80,5 +83,9 @@ public class CoreCommand {
             sb.append(args.get(i));
         }
         return sb.toString();
+    }
+
+    public Meta getMeta() {
+        return meta;
     }
 }

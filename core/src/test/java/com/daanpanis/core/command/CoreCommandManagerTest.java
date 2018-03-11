@@ -3,6 +3,7 @@ package com.daanpanis.core.command;
 import com.daanpanis.core.api.command.Command;
 import com.daanpanis.core.api.command.Message;
 import com.daanpanis.core.api.command.exceptions.*;
+import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.api.command.parsers.IntegerParser;
 import com.daanpanis.core.api.command.parsers.StringParser;
 import org.bukkit.command.CommandSender;
@@ -175,6 +176,25 @@ public class CoreCommandManagerTest {
 
         });
     }
+
+    /*
+     * Unregister tests
+     */
+    @Test
+    public void unregisterSingleCommand() throws Exception {
+        manager.registerCommands(new Object() {
+
+            @Command(syntax = "command")
+            void command(CommandSender sender) {
+
+            }
+
+        }, Meta.builder().value("id", "test-command").build());
+        assertThat(manager.getCommandsCount(), is(1));
+        manager.unregisterCommands(meta -> meta.is("id", "test-command"));
+        assertThat(manager.getCommandsCount(), is(0));
+    }
+
 
     /*
      * Parameter type tests
