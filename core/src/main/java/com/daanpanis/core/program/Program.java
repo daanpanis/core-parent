@@ -7,21 +7,21 @@ import com.daanpanis.core.api.command.Message;
 import com.daanpanis.core.api.command.Name;
 import com.daanpanis.core.api.command.exceptions.CommandException;
 import com.daanpanis.core.api.command.meta.Meta;
+import com.daanpanis.core.api.command.meta.MetaTags;
 import com.daanpanis.core.api.command.parsers.IntegerParser;
 import com.daanpanis.core.api.command.parsers.StringParser;
+import com.daanpanis.core.api.command.permission.DefaultPermissionHandler;
+import com.daanpanis.core.api.command.permission.Permission;
 import com.daanpanis.core.command.CoreCommandManager;
 import com.daanpanis.core.watcher.FolderWatcher;
 import com.daanpanis.core.watcher.UpdateHandler;
 import com.daanpanis.scripting.loading.api.ScriptLoader;
-import com.daanpanis.scripting.loading.api.exception.ScriptException;
 import com.daanpanis.scripting.loading.groovy.GroovyCompiler;
+import groovy.lang.GroovySystem;
 import org.bukkit.command.CommandSender;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +33,8 @@ public class Program {
     public static void main(String[] args) throws Exception {
         Debugger.debug = false;
         CommandManager manager = new CoreCommandManager();
+
+        manager.registerPermissionHandler(Permission.class, new DefaultPermissionHandler());
 
         manager.registerParameterType(String.class, new StringParser());
         manager.registerParameterType(int.class, new IntegerParser());
@@ -55,7 +57,7 @@ public class Program {
             }
         }).start();
 
-        new FolderWatcher().setFilter(file -> file.getName().toLowerCase().endsWith(".groovy")).addFolder("C:/Users/Daan Panis/Desktop/Commands")
+        new FolderWatcher().setFilter(file -> file.getName().toLowerCase().endsWith(".groovy")).addFolder("C:/Users/Daan/Desktop/Commands")
                 .setHandler(new UpdateHandler() {
 
                     ExecutorService service = Executors.newCachedThreadPool();
@@ -65,12 +67,15 @@ public class Program {
                     public void onAdded(List<File> files) {
                         for (Map.Entry<File, Object> entry : loadScripts(files).entrySet()) {
                             try {
-                                manager.registerCommands(entry.getValue(),
-                                        Meta.builder().value("file", entry.getKey().getPath().toLowerCase()).build());
+                                manager.registerCommands(entry.getValue(), Meta.builder().value(MetaTags.FILE, entry.getKey().getPath().toLowerCase())
+                                        .value(MetaTags.SCRIPT, entry.getValue().getClass()).build());
                                 System.out.println("Loaded commands: " + entry.getKey().getPath());
                             } catch (CommandException e) {
                                 e.printStackTrace();
                             }
+                        }
+                        for (Class<?> groovyClass : GroovyCompiler.classLoader.getLoadedClasses()) {
+                            System.out.println("Groovy class: " + groovyClass);
                         }
                     }
 
@@ -82,7 +87,20 @@ public class Program {
 
                     @Override
                     public void onRemoved(List<File> files) {
-                        files.forEach(file -> manager.unregisterCommands(meta -> meta.is("file", file.getPath().toLowerCase())));
+                        List<Class<?>> unregister = new ArrayList<>();
+                        files.forEach(file -> manager.unregisterCommands(meta -> {
+                            if (meta.has(MetaTags.SCRIPT)) {
+                                unregister.add(meta.get(MetaTags.SCRIPT));
+                                for (Class<?> groovyClass : GroovyCompiler.classLoader.getLoadedClasses()) {
+                                    if (groovyClass.toString().equals(meta.get(MetaTags.SCRIPT))) {
+                                        unregister.add(groovyClass);
+                                    }
+                                }
+                            }
+                            return meta.is(MetaTags.FILE, file.getPath().toLowerCase());
+                        }));
+                        unregister.forEach(cls -> GroovySystem.getMetaClassRegistry().removeMetaClass(cls));
+                        GroovyCompiler.classLoader.clearCache();
                     }
 
                     private Map<File, Object> loadScripts(List<File> files) {

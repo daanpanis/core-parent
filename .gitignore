@@ -23,3 +23,5 @@ nbdist/
 log/
 target/
 classes/
+
+dependency-reduced-pom.xml

@@ -43,7 +43,7 @@ public class TestCommandSender implements CommandSender {
 
     @Override
     public boolean hasPermission(String s) {
-        return true;
+        return false;
     }
 
     @Override

@@ -12,9 +12,9 @@ public class Meta {
         return new Meta(new CaseInsensitiveMap<>(0));
     }
 
-    private final CaseInsensitiveMap<String, String> metaValues;
+    private final CaseInsensitiveMap<String, Object> metaValues;
 
-    public Meta(CaseInsensitiveMap<String, String> metaValues) {
+    public Meta(CaseInsensitiveMap<String, Object> metaValues) {
         this.metaValues = metaValues;
     }
 
@@ -22,18 +22,18 @@ public class Meta {
         return metaValues.containsKey(key);
     }
 
-    public String get(String key) {
-        return metaValues.get(key);
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key) {
+        return (T) metaValues.get(key);
     }
 
-    public boolean is(String key, String value) {
-        return is(key, value, true);
+    public <T> T get(String key, Class<T> castTo) {
+        return get(key);
     }
 
-    public boolean is(String key, String valueToMatch, boolean matchCase) {
-        if (!has(key))
-            return false;
+    public boolean is(String key, Object valueToMatch) {
+        if (!has(key)) return false;
         String value = get(key);
-        return matchCase ? value.equals(valueToMatch) : value.equalsIgnoreCase(valueToMatch);
+        return value.equals(valueToMatch);
     }
 }
