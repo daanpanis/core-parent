@@ -6,6 +6,7 @@ import com.daanpanis.core.api.command.meta.MetaMatcher;
 import org.bukkit.command.CommandSender;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 public interface CommandManager {
 
@@ -24,6 +25,8 @@ public interface CommandManager {
     <T> ParameterParser<T> getParameterParser(Class<T> parameterClass);
 
     void executeCommand(CommandSender sender, String executedCommand);
+
+    void executeCommand(CommandSender sender, String command, List<String> args);
 
     <T extends Annotation> void registerPermissionHandler(Class<T> annotationClass, PermissionHandler<T> handler);
 

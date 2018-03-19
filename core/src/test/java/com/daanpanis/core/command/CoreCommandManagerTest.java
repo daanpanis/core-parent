@@ -186,7 +186,6 @@ public class CoreCommandManagerTest {
 
             @Command(syntax = "command")
             void command(CommandSender sender) {
-
             }
 
         }, Meta.builder().value("id", "test-command").build());
@@ -195,6 +194,41 @@ public class CoreCommandManagerTest {
         assertThat(manager.getCommandsCount(), is(0));
     }
 
+    @Test
+    public void unregisterMultipleCommands() throws Exception {
+        manager.registerCommands(new Object() {
+
+            @Command(syntax = "command1")
+            void command1(CommandSender sender) {
+            }
+
+            @Command(syntax = "command2")
+            void command2(CommandSender sender) {
+            }
+
+        }, Meta.builder().value("id", "test-command").build());
+        assertThat(manager.getCommandsCount(), is(2));
+        manager.unregisterCommands(meta -> meta.is("id", "test-command"));
+        assertThat(manager.getCommandsCount(), is(0));
+    }
+
+    @Test
+    public void unregisterMultipleSubCommands() throws Exception {
+        manager.registerCommands(new Object() {
+
+            @Command(syntax = "command")
+            void command(CommandSender sender) {
+            }
+
+            @Command(syntax = "command sub")
+            void subCommand(CommandSender sender) {
+            }
+
+        }, Meta.builder().value("id", "test-command").build());
+        assertThat(manager.getCommandsCount(), is(2));
+        manager.unregisterCommands(meta -> meta.is("id", "test-command"));
+        assertThat(manager.getCommandsCount(), is(0));
+    }
 
     /*
      * Parameter type tests

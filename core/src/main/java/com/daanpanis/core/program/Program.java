@@ -8,6 +8,7 @@ import com.daanpanis.core.api.command.Name;
 import com.daanpanis.core.api.command.exceptions.CommandException;
 import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.api.command.meta.MetaTags;
+import com.daanpanis.core.api.command.parsers.DoubleParser;
 import com.daanpanis.core.api.command.parsers.IntegerParser;
 import com.daanpanis.core.api.command.parsers.StringParser;
 import com.daanpanis.core.api.command.permission.DefaultPermissionHandler;
@@ -39,12 +40,13 @@ public class Program {
         manager.registerParameterType(String.class, new StringParser());
         manager.registerParameterType(int.class, new IntegerParser());
         manager.registerParameterType(Integer.class, new IntegerParser());
+        manager.registerParameterType(double.class, new DoubleParser());
 
         manager.registerCommands(new Object() {
 
-            @Command(syntax = "command [lel,test] {1} {2}")
-            void command(CommandSender sender, @Name(name = "amount") int number, @Message String arg1) {
-                sender.sendMessage(number + ": " + arg1);
+            @Command(syntax = "command {1}")
+            void command(CommandSender sender, double number) {
+                sender.sendMessage(number + "");
             }
 
         });
@@ -57,7 +59,7 @@ public class Program {
             }
         }).start();
 
-        new FolderWatcher().setFilter(file -> file.getName().toLowerCase().endsWith(".groovy")).addFolder("C:/Users/Daan/Desktop/Commands")
+        new FolderWatcher().setFilter(file -> file.getName().toLowerCase().endsWith(".groovy")).addFolder("C:/Users/Daan Panis/Desktop/Commands")
                 .setHandler(new UpdateHandler() {
 
                     ExecutorService service = Executors.newCachedThreadPool();

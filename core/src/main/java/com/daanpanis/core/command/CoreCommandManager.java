@@ -13,9 +13,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,6 +22,7 @@ import java.util.stream.Stream;
 public class CoreCommandManager implements CommandManager {
 
     private final Map<String, Collection<CoreCommand>> registeredCommands = new HashMap<>();
+    private final Map<String, BukkitCommand> bukkitCommands = new HashMap<>();
     private final Map<Class<?>, ParameterParser<?>> registeredParameters = new HashMap<>();
     private final Map<Class<? extends Annotation>, PermissionHandler<?>> permissionHandlers = new HashMap<>();
 
@@ -31,7 +30,8 @@ public class CoreCommandManager implements CommandManager {
     public void registerCommands(Object commands, Meta meta) throws CommandException {
         Collection<Method> commandMethods = Stream.of(commands.getClass().getDeclaredMethods())
                 .filter(method -> method.getAnnotation(Command.class) != null).collect(Collectors.toList());
-        if (commandMethods.isEmpty()) throw new CommandException("No command methods found");
+        if (commandMethods.isEmpty())
+            throw new CommandException("No command methods found");
         for (Method method : commandMethods) {
             registerCommand(method, commands, meta);
         }
@@ -69,26 +69,28 @@ public class CoreCommandManager implements CommandManager {
                 .collect(Collectors.toList());
         Debugger.println("command split size: " + commandSplit.size());
         Debugger.println("is empty? " + commandSplit.isEmpty());
-        if (commandSplit.isEmpty()) throw new CommandExecutionException("Unknown command!");
-        String commandName = commandSplit.get(0).toLowerCase();
-        Debugger.println("is registered? " + registeredCommands.containsKey(commandName));
-        if (registeredCommands.containsKey(commandName)) {
-            List<String> args = commandSplit.subList(1, commandSplit.size());
+        if (commandSplit.isEmpty())
+            throw new CommandExecutionException("Unknown command!");
+        this.executeCommand(sender, commandSplit.get(0).toLowerCase(), commandSplit.subList(1, commandSplit.size()));
+    }
+
+    @Override
+    public void executeCommand(CommandSender sender, String command, List<String> args) {
+        Debugger.println("is registered? " + registeredCommands.containsKey(command));
+        if (registeredCommands.containsKey(command)) {
             Debugger.println("args size: " + args.size());
-            Debugger.println("Real commands size: " + registeredCommands.get(commandName).size());
-            List<CoreCommand> commands = registeredCommands.get(commandName).stream().filter(coreCommand -> coreCommand.matches(args))
+            Debugger.println("Real commands size: " + registeredCommands.get(command).size());
+            List<CoreCommand> commands = registeredCommands.get(command).stream().filter(coreCommand -> coreCommand.matches(args))
                     .collect(Collectors.toList());
 
             Debugger.println("commands size: " + commands.size());
-            if (commands.isEmpty()) { throw new CommandExecutionException("Unknown command!"); } else if (commands.size() > 1) {
+            if (commands.isEmpty()) {
+                throw new CommandExecutionException("Unknown command!");
+            } else if (commands.size() > 1) {
                 throw new CommandExecutionException("Multiple commands matched!");
             }
 
-            try {
-                commands.get(0).execute(sender, args);
-            } catch (CommandExecutionException ex) {
-                System.err.println(ex.getMessage());
-            }
+            commands.get(0).execute(sender, args);
         } else {
             throw new CommandExecutionException("Unknown command!");
         }
@@ -113,7 +115,8 @@ public class CoreCommandManager implements CommandManager {
         List<String> arguments = Stream.of(annotation.syntax().trim().replace("\\s{2,}", "").split(" ")).filter(string -> !string.isEmpty())
                 .collect(Collectors.toList());
 
-        if (arguments.isEmpty()) throw new CommandSyntaxEmptyException("The syntax is empty!");
+        if (arguments.isEmpty())
+            throw new CommandSyntaxEmptyException("The syntax is empty!");
 
         String commandName = arguments.get(0);
         arguments = arguments.subList(1, arguments.size());
@@ -123,12 +126,14 @@ public class CoreCommandManager implements CommandManager {
 
         this.registeredCommands.computeIfAbsent(commandName.toLowerCase(), f -> new ArrayList<>())
                 .add(new CoreCommand(instance, method, args, meta, permissionAnnotation,
-                        permissionAnnotation != null ? permissionHandlers.get(permissionAnnotation.getClass()) : null));
+                        permissionAnnotation != null ? permissionHandlers.get(permissionAnnotation.annotationType()) : null));
+        this.bukkitCommands.put(commandName.toLowerCase(), new BukkitCommand(commandName, this));
     }
 
     private List<Parameter> getParameters(Method method) throws CommandException {
         Parameter[] parameters = method.getParameters();
-        if (parameters.length == 0) throw new CommandParametersException("Command method can't have zero parameters");
+        if (parameters.length == 0)
+            throw new CommandParametersException("Command method can't have zero parameters");
 
         Parameter first = parameters[0];
         if (first.getType() != CommandSender.class && first.getType() != Player.class && first.getType() != ConsoleCommandSender.class) {
@@ -172,13 +177,16 @@ public class CoreCommandManager implements CommandManager {
             throws CommandException {
         argument = argument.substring(1, argument.length() - 1);
         Integer index = parseInt(argument);
-        if (index == null) throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
-        if (index < 1) throw new CommandSyntaxException("Argument index must be 1 or higher");
+        if (index == null)
+            throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
+        if (index < 1)
+            throw new CommandSyntaxException("Argument index must be 1 or higher");
         if (index >= parameters.size() + 1) {
             throw new CommandSyntaxException(
                     "Argument index number bigger than parameter count (given: " + index + ", parameter count: " + parameters.parallelStream() + ")");
         }
-        if (indexesUsed.contains(index)) throw new CommandSyntaxException("Can't use one argument index multiple times");
+        if (indexesUsed.contains(index))
+            throw new CommandSyntaxException("Can't use one argument index multiple times");
         Parameter parameter = parameters.get(index - 1);
         String argumentName = getArgumentName(parameter);
         if (parameter.getAnnotation(Message.class) != null) {
@@ -195,7 +203,8 @@ public class CoreCommandManager implements CommandManager {
 
     private String getArgumentName(Parameter parameter) {
         Name name = parameter.getAnnotation(Name.class);
-        if (name != null) return name.name();
+        if (name != null)
+            return name.name();
         return parameter.getName();
     }
 
@@ -209,23 +218,11 @@ public class CoreCommandManager implements CommandManager {
 
     private Annotation getPermissionannotation(Method method) {
 
-        System.out.println(method.getAnnotation(Permission.class));
+        Debugger.println(method.getAnnotation(Permission.class));
         for (Annotation annotation : method.getDeclaredAnnotations()) {
-            System.out.println(annotation.getClass().getAnnotatedSuperclass());
-            System.out.println(method.getName() + ":" + annotation.getClass().getName());
-            System.out.println("methods:");
-            for (Method m : annotation.getClass().getDeclaredMethods()) {
-                System.out.println(
-                        " - " + (Modifier.isStatic(m.getModifiers()) ? "static " : "") + m.getReturnType().getName() + " " + m.getName() + "("
-                                + Stream.of(m.getParameterTypes()).map(Class::getName).collect(Collectors.toList()).toString() + ")");
-            }
-            System.out.println("fields:");
-            for (Field field : annotation.getClass().getDeclaredFields()) {
-                System.out.println(
-                        " - " + (Modifier.isStatic(field.getModifiers()) ? "static " : "") + field.getType().getName() + " " + field.getName());
-            }
-            if (permissionHandlers.containsKey(annotation.getClass())) {
-                System.out.println("Permission annotation found: " + annotation);
+            Debugger.println("Type: " + annotation.annotationType());
+            if (permissionHandlers.containsKey(annotation.annotationType())) {
+                Debugger.println("Permission annotation found: " + annotation);
                 return annotation;
             }
         }
