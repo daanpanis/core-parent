@@ -1,0 +1,19 @@
+{
+  "watchers": [
+    {
+      "type": "local",
+      "location": "C:/Users/Daan/Desktop/Commands",
+      //      "type": "github",
+      //      "location": "daanpanis/test-github",
+      "rules": [
+        {
+          "handler": "command",
+          "matchers": [
+            "/",
+            "/test/"
+          ]
+        }
+      ]
+    }
+  ]
+}

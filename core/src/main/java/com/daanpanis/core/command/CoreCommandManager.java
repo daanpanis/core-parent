@@ -26,12 +26,15 @@ public class CoreCommandManager implements CommandManager {
     private final Map<Class<?>, ParameterParser<?>> registeredParameters = new HashMap<>();
     private final Map<Class<? extends Annotation>, PermissionHandler<?>> permissionHandlers = new HashMap<>();
 
+    public Map<String, Collection<CoreCommand>> getRegisteredCommands() {
+        return registeredCommands;
+    }
+
     @Override
     public void registerCommands(Object commands, Meta meta) throws CommandException {
         Collection<Method> commandMethods = Stream.of(commands.getClass().getDeclaredMethods())
                 .filter(method -> method.getAnnotation(Command.class) != null).collect(Collectors.toList());
-        if (commandMethods.isEmpty())
-            throw new CommandException("No command methods found");
+        if (commandMethods.isEmpty()) throw new CommandException("No command methods found");
         for (Method method : commandMethods) {
             registerCommand(method, commands, meta);
         }
@@ -69,8 +72,7 @@ public class CoreCommandManager implements CommandManager {
                 .collect(Collectors.toList());
         Debugger.println("command split size: " + commandSplit.size());
         Debugger.println("is empty? " + commandSplit.isEmpty());
-        if (commandSplit.isEmpty())
-            throw new CommandExecutionException("Unknown command!");
+        if (commandSplit.isEmpty()) throw new CommandExecutionException("Unknown command!");
         this.executeCommand(sender, commandSplit.get(0).toLowerCase(), commandSplit.subList(1, commandSplit.size()));
     }
 
@@ -115,8 +117,7 @@ public class CoreCommandManager implements CommandManager {
         List<String> arguments = Stream.of(annotation.syntax().trim().replace("\\s{2,}", "").split(" ")).filter(string -> !string.isEmpty())
                 .collect(Collectors.toList());
 
-        if (arguments.isEmpty())
-            throw new CommandSyntaxEmptyException("The syntax is empty!");
+        if (arguments.isEmpty()) throw new CommandSyntaxEmptyException("The syntax is empty!");
 
         String commandName = arguments.get(0);
         arguments = arguments.subList(1, arguments.size());
@@ -132,8 +133,7 @@ public class CoreCommandManager implements CommandManager {
 
     private List<Parameter> getParameters(Method method) throws CommandException {
         Parameter[] parameters = method.getParameters();
-        if (parameters.length == 0)
-            throw new CommandParametersException("Command method can't have zero parameters");
+        if (parameters.length == 0) throw new CommandParametersException("Command method can't have zero parameters");
 
         Parameter first = parameters[0];
         if (first.getType() != CommandSender.class && first.getType() != Player.class && first.getType() != ConsoleCommandSender.class) {
@@ -177,16 +177,13 @@ public class CoreCommandManager implements CommandManager {
             throws CommandException {
         argument = argument.substring(1, argument.length() - 1);
         Integer index = parseInt(argument);
-        if (index == null)
-            throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
-        if (index < 1)
-            throw new CommandSyntaxException("Argument index must be 1 or higher");
+        if (index == null) throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
+        if (index < 1) throw new CommandSyntaxException("Argument index must be 1 or higher");
         if (index >= parameters.size() + 1) {
             throw new CommandSyntaxException(
                     "Argument index number bigger than parameter count (given: " + index + ", parameter count: " + parameters.parallelStream() + ")");
         }
-        if (indexesUsed.contains(index))
-            throw new CommandSyntaxException("Can't use one argument index multiple times");
+        if (indexesUsed.contains(index)) throw new CommandSyntaxException("Can't use one argument index multiple times");
         Parameter parameter = parameters.get(index - 1);
         String argumentName = getArgumentName(parameter);
         if (parameter.getAnnotation(Message.class) != null) {
@@ -203,8 +200,7 @@ public class CoreCommandManager implements CommandManager {
 
     private String getArgumentName(Parameter parameter) {
         Name name = parameter.getAnnotation(Name.class);
-        if (name != null)
-            return name.name();
+        if (name != null) return name.name();
         return parameter.getName();
     }
 

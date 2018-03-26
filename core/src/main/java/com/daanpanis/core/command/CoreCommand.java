@@ -40,14 +40,16 @@ public class CoreCommand {
                 CommandArgument argument = arguments.get(i);
                 String value = args.get(i);
 
-                if (argument instanceof StaticCommandArgument && !((StaticCommandArgument) argument).matches(value))
-                    return false;
-                if (i == arguments.size() - 1 && !(argument instanceof MessageCommandArgument) && args.size() > arguments.size())
-                    return false;
+                if (argument instanceof StaticCommandArgument && !((StaticCommandArgument) argument).matches(value)) return false;
+                if (i == arguments.size() - 1 && !(argument instanceof MessageCommandArgument) && args.size() > arguments.size()) return false;
             }
             return true;
         }
         return false;
+    }
+
+    public List<CommandArgument> getArguments() {
+        return arguments;
     }
 
     @SuppressWarnings("unchecked")
@@ -92,8 +94,7 @@ public class CoreCommand {
     private String getMessage(List<String> args, int startIndex) {
         StringBuilder sb = new StringBuilder();
         for (int i = startIndex; i < args.size(); i++) {
-            if (sb.length() > 0)
-                sb.append(" ");
+            if (sb.length() > 0) sb.append(" ");
             sb.append(args.get(i));
         }
         return sb.toString();

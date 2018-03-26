@@ -56,19 +56,25 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>24.1-jre</version>
+            <scope>test provided</scope>
+        </dependency>
         <!--Spigot API-->
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.11-R0.1-SNAPSHOT</version>
-            <scope>compile</scope>
+            <scope>test provided</scope>
         </dependency>
         <!--Bukkit API-->
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
             <version>1.11-R0.1-SNAPSHOT</version>
-            <scope>compile</scope>
+            <scope>test provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
         <dependency>

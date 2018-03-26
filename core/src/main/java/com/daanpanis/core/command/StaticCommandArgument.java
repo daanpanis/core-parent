@@ -15,6 +15,10 @@ public class StaticCommandArgument implements CommandArgument {
         this.values = values.stream().map(String::toLowerCase).collect(Collectors.toSet());
     }
 
+    public Collection<String> getValues() {
+        return values;
+    }
+
     public boolean matches(String value) {
         return values.contains(value.toLowerCase());
     }

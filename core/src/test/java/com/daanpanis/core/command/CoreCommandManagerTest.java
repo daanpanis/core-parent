@@ -6,6 +6,8 @@ import com.daanpanis.core.api.command.exceptions.*;
 import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.api.command.parsers.IntegerParser;
 import com.daanpanis.core.api.command.parsers.StringParser;
+import com.daanpanis.core.api.command.permission.DefaultPermissionHandler;
+import com.daanpanis.core.api.command.permission.Permission;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.Before;
@@ -257,5 +259,14 @@ public class CoreCommandManagerTest {
         assertThat(manager.isParameterRegistered(String.class), is(true));
         assertThat(manager.getParameterParser(String.class), is(notNullValue()));
         assertThat(manager.getParameterParser(String.class).parse(null, null), is("2"));
+    }
+
+    /*
+     * Permission handler tests
+     */
+    @Test
+    public void registerPermissionHandler() {
+        manager.registerPermissionHandler(Permission.class, new DefaultPermissionHandler());
+        assertThat(manager.isPermissionHandlerRegistered(Permission.class), is(true));
     }
 }
