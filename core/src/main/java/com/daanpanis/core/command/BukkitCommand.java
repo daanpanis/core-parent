@@ -3,13 +3,14 @@ package com.daanpanis.core.command;
 import com.daanpanis.core.api.command.CommandManager;
 import com.daanpanis.core.api.command.exceptions.CommandExecutionException;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-public class BukkitCommand extends Command {
+public class BukkitCommand extends Command implements CommandExecutor {
 
     private final CommandManager commandManager;
 
@@ -37,5 +38,10 @@ public class BukkitCommand extends Command {
     public BukkitCommand addAliases(Collection<String> aliases) {
         getAliases().addAll(aliases);
         return this;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
+        return execute(commandSender, s, strings);
     }
 }

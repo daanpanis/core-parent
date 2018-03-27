@@ -8,11 +8,15 @@ import com.daanpanis.core.api.command.permission.Permission;
 import com.daanpanis.core.program.Debugger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.SimplePluginManager;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -20,6 +24,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CoreCommandManager implements CommandManager {
+
+    private static CommandMap commandMap;
+
+    static {
+        SimplePluginManager pluginManager = (SimplePluginManager) Bukkit.getServer().getPluginManager();
+        try {
+            Field field = SimplePluginManager.class.getDeclaredField("commandMap");
+            field.setAccessible(true);
+            commandMap = (CommandMap) field.get(pluginManager);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private final Map<String, Collection<CoreCommand>> registeredCommands = new HashMap<>();
     private final Map<String, BukkitCommand> bukkitCommands = new HashMap<>();
@@ -34,7 +52,8 @@ public class CoreCommandManager implements CommandManager {
     public void registerCommands(Object commands, Meta meta) throws CommandException {
         Collection<Method> commandMethods = Stream.of(commands.getClass().getDeclaredMethods())
                 .filter(method -> method.getAnnotation(Command.class) != null).collect(Collectors.toList());
-        if (commandMethods.isEmpty()) throw new CommandException("No command methods found");
+        if (commandMethods.isEmpty())
+            throw new CommandException("No command methods found");
         for (Method method : commandMethods) {
             registerCommand(method, commands, meta);
         }
@@ -72,7 +91,8 @@ public class CoreCommandManager implements CommandManager {
                 .collect(Collectors.toList());
         Debugger.println("command split size: " + commandSplit.size());
         Debugger.println("is empty? " + commandSplit.isEmpty());
-        if (commandSplit.isEmpty()) throw new CommandExecutionException("Unknown command!");
+        if (commandSplit.isEmpty())
+            throw new CommandExecutionException("Unknown command!");
         this.executeCommand(sender, commandSplit.get(0).toLowerCase(), commandSplit.subList(1, commandSplit.size()));
     }
 
@@ -110,6 +130,15 @@ public class CoreCommandManager implements CommandManager {
         return permissionHandlers.containsKey(annotationClass);
     }
 
+    private BukkitCommand registerBukkitCommand(String commandName) {
+        BukkitCommand command = new BukkitCommand(commandName, this);
+        commandMap.register(commandName, command);
+        if (Bukkit.getServer().getPluginCommand(commandName) != null) {
+            Bukkit.getServer().getPluginCommand(commandName).setExecutor(command);
+        }
+        return command;
+    }
+
     private void registerCommand(Method method, Object instance, Meta meta) throws CommandException {
         List<Parameter> parameters = getParameters(method);
 
@@ -117,7 +146,8 @@ public class CoreCommandManager implements CommandManager {
         List<String> arguments = Stream.of(annotation.syntax().trim().replace("\\s{2,}", "").split(" ")).filter(string -> !string.isEmpty())
                 .collect(Collectors.toList());
 
-        if (arguments.isEmpty()) throw new CommandSyntaxEmptyException("The syntax is empty!");
+        if (arguments.isEmpty())
+            throw new CommandSyntaxEmptyException("The syntax is empty!");
 
         String commandName = arguments.get(0);
         arguments = arguments.subList(1, arguments.size());
@@ -129,11 +159,13 @@ public class CoreCommandManager implements CommandManager {
                 .add(new CoreCommand(instance, method, args, meta, permissionAnnotation,
                         permissionAnnotation != null ? permissionHandlers.get(permissionAnnotation.annotationType()) : null));
         this.bukkitCommands.put(commandName.toLowerCase(), new BukkitCommand(commandName, this));
+        registerBukkitCommand(commandName);
     }
 
     private List<Parameter> getParameters(Method method) throws CommandException {
         Parameter[] parameters = method.getParameters();
-        if (parameters.length == 0) throw new CommandParametersException("Command method can't have zero parameters");
+        if (parameters.length == 0)
+            throw new CommandParametersException("Command method can't have zero parameters");
 
         Parameter first = parameters[0];
         if (first.getType() != CommandSender.class && first.getType() != Player.class && first.getType() != ConsoleCommandSender.class) {
@@ -177,13 +209,16 @@ public class CoreCommandManager implements CommandManager {
             throws CommandException {
         argument = argument.substring(1, argument.length() - 1);
         Integer index = parseInt(argument);
-        if (index == null) throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
-        if (index < 1) throw new CommandSyntaxException("Argument index must be 1 or higher");
+        if (index == null)
+            throw new CommandSyntaxException("Wrong argument index given (" + argument + ")");
+        if (index < 1)
+            throw new CommandSyntaxException("Argument index must be 1 or higher");
         if (index >= parameters.size() + 1) {
             throw new CommandSyntaxException(
                     "Argument index number bigger than parameter count (given: " + index + ", parameter count: " + parameters.parallelStream() + ")");
         }
-        if (indexesUsed.contains(index)) throw new CommandSyntaxException("Can't use one argument index multiple times");
+        if (indexesUsed.contains(index))
+            throw new CommandSyntaxException("Can't use one argument index multiple times");
         Parameter parameter = parameters.get(index - 1);
         String argumentName = getArgumentName(parameter);
         if (parameter.getAnnotation(Message.class) != null) {
@@ -200,7 +235,8 @@ public class CoreCommandManager implements CommandManager {
 
     private String getArgumentName(Parameter parameter) {
         Name name = parameter.getAnnotation(Name.class);
-        if (name != null) return name.name();
+        if (name != null)
+            return name.name();
         return parameter.getName();
     }
 

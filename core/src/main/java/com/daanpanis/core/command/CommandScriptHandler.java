@@ -16,8 +16,6 @@ import com.daanpanis.scripting.loading.groovy.GroovyCompiler;
 import groovy.lang.GroovySystem;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 public class CommandScriptHandler implements UpdateHandler {
@@ -39,7 +37,8 @@ public class CommandScriptHandler implements UpdateHandler {
     public void onRemoved(Collection<? extends TrackedFile> files) {
         List<Class<?>> unregister = new ArrayList<>();
         files.stream().filter(file -> file.getExtension().equalsIgnoreCase("groovy")).forEach(file -> commandManager.unregisterCommands(meta -> {
-            if (!meta.is(MetaTags.FILE, getFullFileName(file))) return false;
+            if (!meta.is(MetaTags.FILE, getFullFileName(file)))
+                return false;
             if (meta.has(MetaTags.SCRIPT)) {
                 unregister.add(meta.get(MetaTags.SCRIPT));
                 for (Class<?> groovyClass : GroovyCompiler.classLoader.getLoadedClasses()) {
@@ -93,16 +92,6 @@ public class CommandScriptHandler implements UpdateHandler {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-      /*  CompletableFuture.allOf(files.stream().map(file -> CompletableFuture.runAsync(() -> {
-            try {
-                scripts.put(file, injector.inject(loader.stream(file.getInput()).expectClass().get()));
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("Unable to load script: " + getFullFileName(file));
-                // TODO Log
-            }
-        })).toArray((IntFunction<CompletableFuture<?>[]>) CompletableFuture[]::new)).join();*/
         return scripts;
     }
 }

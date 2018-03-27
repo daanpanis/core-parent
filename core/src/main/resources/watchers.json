@@ -2,7 +2,7 @@
   "watchers": [
     {
       "type": "local",
-      "location": "C:/Users/Daan/Desktop/Commands",
+      "location": "C:/Users/Daan Panis/Desktop/Commands",
       //      "type": "github",
       //      "location": "daanpanis/test-github",
       "rules": [

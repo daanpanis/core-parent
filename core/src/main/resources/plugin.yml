@@ -1,0 +1,3 @@
+name: Core
+main: com.daanpanis.core.CorePlugin
+version: 1
