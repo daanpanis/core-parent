@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
 import static com.daanpanis.core.CorePlugin.registerCommandDefaults;
-import static com.daanpanis.core.CorePlugin.registerServices;
+//import static com.daanpanis.core.CorePlugin.registerServices;
 
 public class Main {
 
@@ -23,8 +23,8 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         Debugger.debug = false;
-        Core.setApi(new CoreApiImpl());
-        registerServices();
+        Core.setApi(new CoreApiImpl(null));
+        //        registerServices();
         registerCommandDefaults();
 
         Core.getApi().getCommandManager().registerCommands(Core.getApi().getInjector().inject(HelpCommands.class));

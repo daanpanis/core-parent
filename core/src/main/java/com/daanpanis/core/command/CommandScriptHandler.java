@@ -1,31 +1,32 @@
 package com.daanpanis.core.command;
 
 
-import com.daan.scripting.loading.impl.ScriptLoaderImpl;
 import com.daanpanis.core.api.command.CommandManager;
 import com.daanpanis.core.api.command.exceptions.CommandException;
 import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.api.command.meta.MetaTags;
+import com.daanpanis.core.watcher.ScriptUpdateHandler;
 import com.daanpanis.filewatcher.TrackedFile;
-import com.daanpanis.filewatcher.UpdateHandler;
-import com.daanpanis.filewatcher.github.Async;
 import com.daanpanis.injection.DependencyInjector;
 import com.daanpanis.injection.Inject;
-import com.daanpanis.scripting.loading.api.ScriptLoader;
+import com.daanpanis.scripting.loading.api.exception.ScriptException;
 import com.daanpanis.scripting.loading.groovy.GroovyCompiler;
 import groovy.lang.GroovySystem;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
-public class CommandScriptHandler implements UpdateHandler {
+public class CommandScriptHandler extends ScriptUpdateHandler {
 
     @Inject
     private DependencyInjector injector;
     @Inject
     private CommandManager commandManager;
 
-    private final ScriptLoader loader = new ScriptLoaderImpl(new GroovyCompiler());
+    public CommandScriptHandler() {
+        super(new GroovyCompiler());
+    }
 
     @Override
     public void onUpdated(Collection<? extends TrackedFile> files) {
@@ -37,7 +38,7 @@ public class CommandScriptHandler implements UpdateHandler {
     public void onRemoved(Collection<? extends TrackedFile> files) {
         List<Class<?>> unregister = new ArrayList<>();
         files.stream().filter(file -> file.getExtension().equalsIgnoreCase("groovy")).forEach(file -> commandManager.unregisterCommands(meta -> {
-            if (!meta.is(MetaTags.FILE, getFullFileName(file)))
+            if (!meta.is(MetaTags.FILE, file.getFullFileName().toString()))
                 return false;
             if (meta.has(MetaTags.SCRIPT)) {
                 unregister.add(meta.get(MetaTags.SCRIPT));
@@ -53,45 +54,22 @@ public class CommandScriptHandler implements UpdateHandler {
         GroovyCompiler.classLoader.clearCache();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void onAdded(Collection<? extends TrackedFile> files) {
-        for (Map.Entry<TrackedFile, Object> entry : loadScripts(
-                files.stream().filter(file -> file.getExtension().equalsIgnoreCase("groovy")).collect(Collectors.toList())).entrySet()) {
+        loadScripts(files, reader -> injector.inject(reader.expectClass().get()), "groovy").forEach((file, script) -> {
             try {
-                commandManager.registerCommands(entry.getValue(),
-                        Meta.builder().value(MetaTags.FILE, getFullFileName(entry.getKey())).value(MetaTags.SCRIPT, entry.getValue().getClass())
-                                .build());
-                System.out.println("Loaded commands: " + getFullFileName(entry.getKey()));
+                commandManager.registerCommands(script,
+                        Meta.builder().value(MetaTags.FILE, file.getFullFileName().toString()).value(MetaTags.SCRIPT, script.getClass()).build());
+                System.out.println("Loaded commands: " + file.getFullFileName());
             } catch (CommandException e) {
                 e.printStackTrace();
             }
-        }
+        });
     }
 
     @Override
     public String[] getNames() {
         return new String[]{"command", "commands"};
-    }
-
-    private String getFullFileName(TrackedFile file) {
-        return file.getBase() + file.getPath() + file.getName();
-    }
-
-    private Map<TrackedFile, Object> loadScripts(Collection<? extends TrackedFile> files) {
-        Map<TrackedFile, Object> scripts = new HashMap<>();
-        try {
-            Async.runParallel(files.stream().map(file -> (Runnable) () -> {
-                try {
-                    scripts.put(file, injector.inject(loader.stream(file.getInput()).expectClass().get()));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.err.println("Unable to load script: " + getFullFileName(file));
-                    // TODO Log
-                }
-            }).collect(Collectors.toList())).await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return scripts;
     }
 }

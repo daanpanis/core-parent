@@ -28,13 +28,17 @@ public class CoreCommandManager implements CommandManager {
     private static CommandMap commandMap;
 
     static {
-        SimplePluginManager pluginManager = (SimplePluginManager) Bukkit.getServer().getPluginManager();
-        try {
-            Field field = SimplePluginManager.class.getDeclaredField("commandMap");
-            field.setAccessible(true);
-            commandMap = (CommandMap) field.get(pluginManager);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (Bukkit.getServer() != null) {
+            SimplePluginManager pluginManager = (SimplePluginManager) Bukkit.getServer().getPluginManager();
+            if (pluginManager != null) {
+                try {
+                    Field field = SimplePluginManager.class.getDeclaredField("commandMap");
+                    field.setAccessible(true);
+                    commandMap = (CommandMap) field.get(pluginManager);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -132,9 +136,11 @@ public class CoreCommandManager implements CommandManager {
 
     private BukkitCommand registerBukkitCommand(String commandName) {
         BukkitCommand command = new BukkitCommand(commandName, this);
-        commandMap.register(commandName, command);
-        if (Bukkit.getServer().getPluginCommand(commandName) != null) {
-            Bukkit.getServer().getPluginCommand(commandName).setExecutor(command);
+        if (commandMap != null) {
+            commandMap.register(commandName, command);
+            if (Bukkit.getServer().getPluginCommand(commandName) != null) {
+                Bukkit.getServer().getPluginCommand(commandName).setExecutor(command);
+            }
         }
         return command;
     }
