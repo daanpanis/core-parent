@@ -4,11 +4,10 @@ import com.daanpanis.core.api.command.*;
 import com.daanpanis.core.api.command.exceptions.*;
 import com.daanpanis.core.api.command.meta.Meta;
 import com.daanpanis.core.api.command.meta.MetaMatcher;
-import com.daanpanis.core.api.command.permission.Permission;
-import com.daanpanis.core.program.Debugger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -93,8 +92,6 @@ public class CoreCommandManager implements CommandManager {
     public void executeCommand(CommandSender sender, String executedCommand) {
         List<String> commandSplit = Stream.of(executedCommand.trim().replace("\\s{2,}", "").split(" ")).filter(string -> !string.isEmpty())
                 .collect(Collectors.toList());
-        Debugger.println("command split size: " + commandSplit.size());
-        Debugger.println("is empty? " + commandSplit.isEmpty());
         if (commandSplit.isEmpty())
             throw new CommandExecutionException("Unknown command!");
         this.executeCommand(sender, commandSplit.get(0).toLowerCase(), commandSplit.subList(1, commandSplit.size()));
@@ -102,23 +99,40 @@ public class CoreCommandManager implements CommandManager {
 
     @Override
     public void executeCommand(CommandSender sender, String command, List<String> args) {
-        Debugger.println("is registered? " + registeredCommands.containsKey(command));
         if (registeredCommands.containsKey(command)) {
-            Debugger.println("args size: " + args.size());
-            Debugger.println("Real commands size: " + registeredCommands.get(command).size());
-            List<CoreCommand> commands = registeredCommands.get(command).stream().filter(coreCommand -> coreCommand.matches(args))
-                    .collect(Collectors.toList());
+            List<CommandScore> commands = getMostLikely(registeredCommands.get(command), args);
 
-            Debugger.println("commands size: " + commands.size());
             if (commands.isEmpty()) {
                 throw new CommandExecutionException("Unknown command!");
-            } else if (commands.size() > 1) {
-                throw new CommandExecutionException("Multiple commands matched!");
             }
 
-            commands.get(0).execute(sender, args);
+            CommandScore best = commands.get(0);
+            if (best.command.matches(args)) {
+                best.command.execute(sender, args);
+            } else {
+                if (commands.stream().filter(commandScore -> commandScore.score == best.score).count() == 1)
+                    sender.sendMessage(ChatColor.RED.toString() + "Correct usage: " + best.command.getSyntax(command));
+                else
+                    throw new CommandExecutionException("Multiple matches found!");
+            }
         } else {
             throw new CommandExecutionException("Unknown command!");
+        }
+    }
+
+    private List<CommandScore> getMostLikely(Collection<CoreCommand> allCommands, List<String> args) {
+        return allCommands.stream().map(command -> new CommandScore(command, command.matchRating(args)))
+                .sorted((o1, o2) -> Integer.compare(o2.score, o1.score)).collect(Collectors.toList());
+    }
+
+    private class CommandScore {
+
+        private final CoreCommand command;
+        private final int score;
+
+        public CommandScore(CoreCommand command, int score) {
+            this.command = command;
+            this.score = score;
         }
     }
 
@@ -159,7 +173,7 @@ public class CoreCommandManager implements CommandManager {
         arguments = arguments.subList(1, arguments.size());
         List<CommandArgument> args = getArguments(method, parameters, arguments);
 
-        Annotation permissionAnnotation = getPermissionannotation(method);
+        Annotation permissionAnnotation = getPermissionAnnotation(method);
 
         this.registeredCommands.computeIfAbsent(commandName.toLowerCase(), f -> new ArrayList<>())
                 .add(new CoreCommand(instance, method, args, meta, permissionAnnotation,
@@ -254,13 +268,9 @@ public class CoreCommandManager implements CommandManager {
         return new StaticCommandArgument(null, Sets.newHashSet(argument));
     }
 
-    private Annotation getPermissionannotation(Method method) {
-
-        Debugger.println(method.getAnnotation(Permission.class));
+    private Annotation getPermissionAnnotation(Method method) {
         for (Annotation annotation : method.getDeclaredAnnotations()) {
-            Debugger.println("Type: " + annotation.annotationType());
             if (permissionHandlers.containsKey(annotation.annotationType())) {
-                Debugger.println("Permission annotation found: " + annotation);
                 return annotation;
             }
         }

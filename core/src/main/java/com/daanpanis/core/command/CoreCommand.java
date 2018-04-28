@@ -4,7 +4,6 @@ import com.daanpanis.core.api.command.CommandArgument;
 import com.daanpanis.core.api.command.PermissionHandler;
 import com.daanpanis.core.api.command.exceptions.CommandExecutionException;
 import com.daanpanis.core.api.command.meta.Meta;
-import com.daanpanis.core.program.Debugger;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
@@ -35,21 +34,83 @@ public class CoreCommand {
     }
 
     public boolean matches(List<String> args) {
+       /* if (args.size() >= arguments.size()) {
+            for (int i = 0; i < arguments.size(); i++) {
+                CommandArgument argument = arguments.get(i);
+                String value = args.get(i);
+
+                if (argument instanceof StaticCommandArgument && !((StaticCommandArgument) argument).matches(value))
+                    return false;
+                if (i == arguments.size() - 1 && !(argument instanceof MessageCommandArgument) && args.size() > arguments.size())
+                    return false;
+            }
+            return true;
+        }*/
+        int score = matchRating(args);
+        return score >= arguments.size() && score == args.size();
+    }
+
+    @SuppressWarnings("all")
+    public int matchRating(List<String> args) {
+        int score = 0;
         if (args.size() >= arguments.size()) {
             for (int i = 0; i < arguments.size(); i++) {
                 CommandArgument argument = arguments.get(i);
                 String value = args.get(i);
 
-                if (argument instanceof StaticCommandArgument && !((StaticCommandArgument) argument).matches(value)) return false;
-                if (i == arguments.size() - 1 && !(argument instanceof MessageCommandArgument) && args.size() > arguments.size()) return false;
+                if (argument instanceof StaticCommandArgument && !((StaticCommandArgument) argument).matches(value))
+                    break;
+                if (i == arguments.size() - 1 && !(argument instanceof MessageCommandArgument) && args.size() > arguments.size())
+                    break;
+
+                if (argument instanceof MessageCommandArgument)
+                    score += args.size() - i;
+                else
+                    score++;
             }
-            return true;
         }
-        return false;
+        return score;
     }
 
     public List<CommandArgument> getArguments() {
         return arguments;
+    }
+
+    public String getSyntax(String commandLabel) {
+        StringBuilder msg = new StringBuilder();
+        msg.append(commandLabel).append(" ");
+        this.getArguments().forEach(argument -> {
+            if (argument instanceof StaticCommandArgument) {
+                msg.append(getStaticNotation((StaticCommandArgument) argument));
+            } else if (argument instanceof ParsableCommandArgument) {
+                msg.append(getParsableNotation((ParsableCommandArgument) argument));
+            } else if (argument instanceof MessageCommandArgument) {
+                msg.append(getMessageNotation((MessageCommandArgument) argument));
+            }
+            msg.append(" ");
+        });
+        return msg.toString();
+    }
+
+    private String getStaticNotation(StaticCommandArgument argument) {
+        StringBuilder sb = new StringBuilder();
+        if (argument.getValues().size() == 1) {
+            return argument.getValues().stream().findFirst().orElse("");
+        }
+        argument.getValues().forEach(s -> {
+            if (sb.length() > 0)
+                sb.append(" / ");
+            sb.append(s);
+        });
+        return "[" + sb.toString() + "]";
+    }
+
+    private String getParsableNotation(ParsableCommandArgument argument) {
+        return "<" + argument.getName() + ">";
+    }
+
+    private String getMessageNotation(MessageCommandArgument argument) {
+        return "{" + argument.getName() + "}";
     }
 
     @SuppressWarnings("unchecked")
@@ -73,9 +134,6 @@ public class CoreCommand {
             CommandArgument argument = arguments.get(i);
             if (argument instanceof ParsableCommandArgument) {
                 ParsableCommandArgument parsable = (ParsableCommandArgument) argument;
-                Debugger.println("Parsable: " + parsable);
-                Debugger.println("Arg: " + args.get(i));
-                Debugger.println("Parser: " + parsable.getParser());
                 parameters[parsable.getParameterIndex()] = parsable.getParser().parse(parsable, args.get(i));
             } else if (argument instanceof MessageCommandArgument) {
                 MessageCommandArgument message = (MessageCommandArgument) argument;
@@ -94,7 +152,8 @@ public class CoreCommand {
     private String getMessage(List<String> args, int startIndex) {
         StringBuilder sb = new StringBuilder();
         for (int i = startIndex; i < args.size(); i++) {
-            if (sb.length() > 0) sb.append(" ");
+            if (sb.length() > 0)
+                sb.append(" ");
             sb.append(args.get(i));
         }
         return sb.toString();

@@ -4,11 +4,14 @@ import com.daanpanis.core.api.Core;
 import com.daanpanis.core.api.CoreApi;
 import com.daanpanis.core.api.ban.BanService;
 import com.daanpanis.core.api.command.CommandManager;
+import com.daanpanis.core.api.command.exceptions.CommandException;
 import com.daanpanis.core.api.command.parsers.*;
 import com.daanpanis.core.ban.MySQLBanService;
+import com.daanpanis.core.ban.MySQLFluentBanService;
 import com.daanpanis.core.command.CommandScriptHandler;
+import com.daanpanis.core.command.defaults.HelpCommands;
+import com.daanpanis.core.command.parsers.OfflinePlayerParser;
 import com.daanpanis.core.listener.ListenerScriptHandler;
-import com.daanpanis.core.program.Debugger;
 import com.daanpanis.database.mysql.MySQL;
 import com.daanpanis.database.mysql.MySQLConfiguration;
 import com.daanpanis.filewatcher.FileTracker;
@@ -19,6 +22,7 @@ import com.daanpanis.filewatcher.github.GithubTracker;
 import com.daanpanis.filewatcher.local.LocalTracker;
 import com.daanpanis.injection.DependencyInjector;
 import org.bukkit.GameMode;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,7 +34,6 @@ public class CorePlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        Debugger.debug = false;
         saveDefaultConfig();
         saveResource("watchers.json", false);
 
@@ -53,6 +56,13 @@ public class CorePlugin extends JavaPlugin {
         manager.registerParameterType(float.class, new FloatParser());
         manager.registerParameterType(Player.class, new PlayerParser());
         manager.registerParameterType(GameMode.class, new GameModeParser());
+        manager.registerParameterType(OfflinePlayer.class, new OfflinePlayerParser());
+
+        try {
+            manager.registerCommands(new HelpCommands());
+        } catch (CommandException e) {
+            e.printStackTrace();
+        }
     }
 
     public void registerServices() {
@@ -63,7 +73,7 @@ public class CorePlugin extends JavaPlugin {
         injector.addSingleton(DependencyInjector.class, () -> injector);
         injector.addScoped(CommandManager.class, () -> Core.getApi().getCommandManager());
         setupMySQL(injector);
-        injector.addScoped(BanService.class, MySQLBanService.class);
+        injector.addScoped(BanService.class, MySQLFluentBanService.class);
     }
 
     public void setupFileWatchers() {
@@ -101,7 +111,7 @@ public class CorePlugin extends JavaPlugin {
         FileConfiguration config = getConfig();
         return new MySQLConfiguration(config.getString("mysql.host", "localhost"), config.getInt("mysql.port", 3306),
                 config.getString("mysql.username", "root"), config.getString("mysql.password", "password"),
-                config.getString("mysql.database", "database"));
+                config.getString("mysql.database", "database"), config.getInt("mysql.poolSize", 9));
     }
 
 }

@@ -25,8 +25,8 @@ public class MySQLBanService implements BanService {
     public CompletableFuture<Ban> getActiveBan(UUID playerId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                Ban ban = mysql.query("SELECT * FROM bans WHERE uuid=? AND active=1;", playerId.toString()).stream().map(this::toBan).findFirst()
-                        .orElse(null);
+                Ban ban = mysql.query("SELECT * FROM bans WHERE uuid=? AND active=1;", playerId.toString()).stream().map(MySQLBanService::toBan)
+                        .findFirst().orElse(null);
                 if (ban != null && ban instanceof TempBan && !ban.isActive()) {
                     unban(ban.getUserId());
                     return null;
@@ -43,7 +43,7 @@ public class MySQLBanService implements BanService {
     public CompletableFuture<Collection<Ban>> getAllBans(UUID playerId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return mysql.query("SELECT * FROM " + TABLE + " WHERE uuid=?;", playerId.toString()).stream().map(this::toBan)
+                return mysql.query("SELECT * FROM " + TABLE + " WHERE uuid=?;", playerId.toString()).stream().map(MySQLBanService::toBan)
                         .collect(Collectors.toList());
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -76,7 +76,7 @@ public class MySQLBanService implements BanService {
         });
     }
 
-    private Ban toBan(QueryResult.ResultData data) {
+    protected static Ban toBan(QueryResult.ResultData data) {
         UUID uuid = UUID.fromString(data.asString("uuid"));
         boolean active = data.asBoolean("active");
         UUID banner = UUID.fromString(data.asString("banner"));

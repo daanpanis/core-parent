@@ -17,6 +17,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+@SuppressWarnings("all")
 public class CoreCommandManagerTest {
 
     private CoreCommandManager manager;
@@ -40,7 +41,7 @@ public class CoreCommandManagerTest {
     }
 
     @Test(expected = CommandException.class)
-    public void registerCommandsNoCommandMethods() throws Exception {
+    public void registerCommandsNoCommandMethods() throws CommandException {
         manager.registerCommands(new Object());
     }
 
@@ -268,5 +269,15 @@ public class CoreCommandManagerTest {
     public void registerPermissionHandler() {
         manager.registerPermissionHandler(Permission.class, new DefaultPermissionHandler());
         assertThat(manager.isPermissionHandlerRegistered(Permission.class), is(true));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void registerPermissionHandlerAnnotationNull() {
+        manager.registerPermissionHandler(null, (sender, annotation) -> true);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void registerPermissionHandlerNull() {
+        manager.registerPermissionHandler(Permission.class, null);
     }
 }

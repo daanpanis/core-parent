@@ -46,4 +46,21 @@
         </plugins>
     </build>
 
+    <dependencies>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>${bungee.version}</version>
+            <type>jar</type>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>${bungee.version}</version>
+            <type>javadoc</type>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
 </project>
